@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import {
   fetchAllThreads,
   fetchThreadById,
@@ -6,6 +7,8 @@ import {
   deleteThreadById,
 } from "../services/threadService.js";
 import { createAppError } from "../utils/createAppError.js";
+
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // GET /api/threads
 export const getAllThreads = async (req, res) => {
@@ -19,6 +22,9 @@ export const getAllThreads = async (req, res) => {
 
 // GET /api/threads/:id
 export const getThreadByID = async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    throw createAppError("Invalid thread ID", 400);
+  }
   const thread = await fetchThreadById(req.params.id);
   res.status(200).json({
     success: true,
@@ -30,10 +36,13 @@ export const getThreadByID = async (req, res) => {
 // POST /api/threads
 export const createThread = async (req, res) => {
   const { title, content, subreddit } = req.body;
-  const author = req.user.userId;
+  const author = req.user._id;
 
-  if(!title || !content || !subreddit) {
+  if (!title || !content || !subreddit) {
     throw createAppError("Title, content, and subreddit are required.", 400);
+  }
+  if (!isValidObjectId(subreddit)) {
+    throw createAppError("Invalid subreddit ID", 400);
   }
 
   const populatedThread = await createNewThread(
@@ -50,9 +59,15 @@ export const createThread = async (req, res) => {
 };
 
 // PUT /api/threads/:id
-
 export const updateThread = async (req, res) => {
-  const updatedThread = await updateThreadById(req.params.id, req.body);
+  if (!isValidObjectId(req.params.id)) {
+    throw createAppError("Invalid thread ID", 400);
+  }
+  const updatedThread = await updateThreadById(
+    req.params.id,
+    req.body,
+    req.user._id,
+  );
   res.status(200).json({
     success: true,
     message: "Thread updated successfully",
@@ -62,7 +77,10 @@ export const updateThread = async (req, res) => {
 
 // DELETE /api/threads/:id
 export const deleteThread = async (req, res) => {
-  const deletedThread = await deleteThreadById(req.params.id);
+  if (!isValidObjectId(req.params.id)) {
+    throw createAppError("Invalid thread ID", 400);
+  }
+  const deletedThread = await deleteThreadById(req.params.id, req.user._id);
   res.status(200).json({
     success: true,
     message: "Thread deleted successfully",

@@ -9,10 +9,9 @@ export const fetchAllThreads = async () => {
     .populate({ path: "subreddit", model: Subreddit })
     .sort({ createdAt: -1 });
 
-  // Add error handling for no threads found
   if (!threads || threads.length === 0) {
-    throw createAppError(404, "No threads found");
-  }   
+    throw createAppError("No threads found", 404);
+  }
 
   return threads;
 };
@@ -22,9 +21,8 @@ export const fetchThreadById = async (id) => {
     .populate({ path: "author" })
     .populate({ path: "subreddit" });
 
-  // Add error handling for thread not found
   if (!thread) {
-    throw createAppError(404, "Thread not found");
+    throw createAppError("Thread not found", 404);
   }
   return thread;
 };
@@ -37,32 +35,41 @@ export const createNewThread = async (title, content, author, subreddit) => {
     .populate({ path: "subreddit", select: "name description" })
     .populate({ path: "author", select: "name" });
 
-  // Add error handling for thread creation failure
   if (!populatedThread) {
-    throw createAppError(500, "Failed to create thread");
+    throw createAppError("Failed to create thread", 500);
   }
-
 
   return populatedThread;
 };
 
-export const updateThreadById = async (id, updateData) => {
-  const updatedThread = await Thread.findByIdAndUpdate(id, updateData, {
-    new: true,
-    runValidators: true,
-  });
+export const updateThreadById = async (id, updateData, userId) => {
+  const thread = await Thread.findById(id);
+  if (!thread) {
+    throw createAppError("Thread not found", 404);
+  }
+  if (!thread.author.equals(userId)) {
+    throw createAppError("Not authorized to update this thread", 403);
+  }
 
-  // Add error handling for thread not found or update failure
-  if (!updatedThread) {
-    throw createAppError(404, "Thread not found or update failed");
-  }   
+  const { title, content } = updateData;
+  const updatedThread = await Thread.findByIdAndUpdate(
+    id,
+    { $set: { ...(title && { title }), ...(content && { content }) } },
+    { new: true, runValidators: true },
+  );
+
   return updatedThread;
 };
 
-export const deleteThreadById = async (id) => {
+export const deleteThreadById = async (id, userId) => {
+  const thread = await Thread.findById(id);
+  if (!thread) {
+    throw createAppError("Thread not found", 404);
+  }
+  if (!thread.author.equals(userId)) {
+    throw createAppError("Not authorized to delete this thread", 403);
+  }
+
   const deletedThread = await Thread.findByIdAndDelete(id);
-
-  // Add error handling for thread not found or deletion failure
-
   return deletedThread;
 };

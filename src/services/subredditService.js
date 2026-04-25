@@ -4,21 +4,19 @@ import { createAppError } from "../utils/createAppError.js";
 
 export const fetchAllSubreddits = async () => {
   const subreddits = await Subreddit.find();
-  // Add error handling for no subreddits found
   if (!subreddits || subreddits.length === 0) {
-    throw createAppError(404, "No subreddits found");
+    throw createAppError("No subreddits found", 404);
   }
-  
+
   return subreddits;
 };
 
 export const createNewSubreddit = async (name, description, author) => {
-  const existingSubreddit = await Subreddit.findOne({ name });
+  const existingSubreddit = await Subreddit.findOne({ name: String(name) });
 
-  // Add error handling for duplicate subreddit name
   if (existingSubreddit) {
-    throw createAppError(400, "Subreddit name already exists");
-  }   
+    throw createAppError("Subreddit name already exists", 400);
+  }
 
   const newSubreddit = new Subreddit({ name, description, author });
   await newSubreddit.save();
@@ -28,9 +26,8 @@ export const createNewSubreddit = async (name, description, author) => {
 
 export const fetchSubredditWithThreads = async (id) => {
   const subreddit = await Subreddit.findById(id);
-  // Add error handling for subreddit not found
   if (!subreddit) {
-    throw createAppError(404, "Subreddit not found");
+    throw createAppError("Subreddit not found", 404);
   }
 
   const threads = await Thread.find({ subreddit: id })

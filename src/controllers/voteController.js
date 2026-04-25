@@ -1,12 +1,19 @@
+import mongoose from "mongoose";
 import {
   upvoteThreadService,
   downvoteThreadService,
   upvoteCommentService,
   downvoteCommentService,
 } from "../services/voteService.js";
+import { createAppError } from "../utils/createAppError.js";
+
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 export const upvoteThread = async (req, res) => {
-  const updated = await upvoteThreadService(req.params.id, req.user.userId);
+  if (!isValidObjectId(req.params.id)) {
+    throw createAppError("Invalid thread ID", 400);
+  }
+  const updated = await upvoteThreadService(req.params.id, req.user._id);
   res.status(200).json({
     success: true,
     message: "Thread upvoted successfully",
@@ -15,7 +22,10 @@ export const upvoteThread = async (req, res) => {
 };
 
 export const downvoteThread = async (req, res) => {
-  const updated = await downvoteThreadService(req.params.id, req.user.userId);
+  if (!isValidObjectId(req.params.id)) {
+    throw createAppError("Invalid thread ID", 400);
+  }
+  const updated = await downvoteThreadService(req.params.id, req.user._id);
   res.status(200).json({
     success: true,
     message: "Thread downvoted successfully",
@@ -24,7 +34,10 @@ export const downvoteThread = async (req, res) => {
 };
 
 export const upvoteComment = async (req, res) => {
-  const updated = await upvoteCommentService(req.params.id, req.user.userId);
+  if (!isValidObjectId(req.params.id)) {
+    throw createAppError("Invalid comment ID", 400);
+  }
+  const updated = await upvoteCommentService(req.params.id, req.user._id);
   res.status(200).json({
     success: true,
     message: "Comment upvoted successfully",
@@ -33,7 +46,10 @@ export const upvoteComment = async (req, res) => {
 };
 
 export const downvoteComment = async (req, res) => {
-  const updated = await downvoteCommentService(req.params.id, req.user.userId);
+  if (!isValidObjectId(req.params.id)) {
+    throw createAppError("Invalid comment ID", 400);
+  }
+  const updated = await downvoteCommentService(req.params.id, req.user._id);
   res.status(200).json({
     success: true,
     message: "Comment downvoted successfully",

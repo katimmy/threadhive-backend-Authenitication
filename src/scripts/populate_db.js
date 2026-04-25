@@ -37,10 +37,17 @@ async function clearDatabase() {
   }
 }
 
-// Insert users
+// Insert users (hash passwords before storing)
 async function insertUsers() {
   try {
-    const createdUsers = await User.insertMany(users);
+    const bcrypt = await import("bcryptjs");
+    const usersWithHashedPasswords = await Promise.all(
+      users.map(async (user) => ({
+        ...user,
+        password: await bcrypt.default.hash(user.password, 10),
+      })),
+    );
+    const createdUsers = await User.insertMany(usersWithHashedPasswords);
     console.log(`Inserted ${createdUsers.length} users`);
     return createdUsers;
   } catch (error) {

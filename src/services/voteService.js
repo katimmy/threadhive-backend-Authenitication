@@ -3,31 +3,40 @@ import Comment from "../models/Comment.js";
 import { createAppError } from "../utils/createAppError.js";
 
 const voteHandler = async (Model, id, userId, type) => {
-  const item = await Model.findById(id);
-  const otherType = type === "upvote" ? "downvotedBy" : "upvotedBy";
+  const voteField = type + "dBy";
+  const otherField = type === "upvote" ? "downvotedBy" : "upvotedBy";
 
-  if (!item) throw createAppError("Item not found", 404);
-
-  // Check if user already voted this way
-  if (item[type + "dBy"].some((id) => id.toString() === userId.toString())) {
-    return item;
-  }
-
-  // Push to correct array
-  item[type + "dBy"].push(userId);
-
-  // Remove from opposite array
-  item[otherType] = item[otherType].filter(
-    (id) => id.toString() !== userId.toString()
+  // Atomic: remove from opposite array and add to target array in one operation
+  const item = await Model.findOneAndUpdate(
+    { _id: id, [voteField]: { $ne: userId } },
+    {
+      $addToSet: { [voteField]: userId },
+      $pull: { [otherField]: userId },
+    },
+    { new: true },
   );
 
-  // Update counters
-  item.upvotes = item.upvotedBy.length;
-  item.downvotes = item.downvotedBy.length;
-  item.voteCount = item.upvotes - item.downvotes;
+  if (!item) {
+    // Either not found or already voted this way
+    const exists = await Model.findById(id);
+    if (!exists) throw createAppError("Item not found", 404);
+    return exists; // already voted this way, return unchanged
+  }
 
-  await item.save();
-  return item;
+  // Update counters atomically based on array lengths
+  const updated = await Model.findByIdAndUpdate(
+    id,
+    {
+      $set: {
+        upvotes: item.upvotedBy.length,
+        downvotes: item.downvotedBy.length,
+        voteCount: item.upvotedBy.length - item.downvotedBy.length,
+      },
+    },
+    { new: true },
+  );
+
+  return updated;
 };
 
 export default voteHandler;

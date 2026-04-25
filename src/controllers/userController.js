@@ -1,9 +1,13 @@
-import * as userService from "../services/userService.js";
-
 const getUserProfile = async (req, res, next) => {
-  const userId = req.userId; // from authHandler middleware
-  const user = await userService.getUserById(userId);
-  res.status(200).json(user);
+  const user = req.user;
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+  res.status(200).json({
+    success: true,
+    message: "User profile fetched successfully",
+    data: user,
+  });
 };
 
 export { getUserProfile };
