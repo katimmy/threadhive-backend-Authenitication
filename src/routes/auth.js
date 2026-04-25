@@ -1,1 +1,1 @@
-// YOUR CODE HERE
+// Setting up the authentication routes
